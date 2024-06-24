@@ -17,7 +17,10 @@ const Login = () => {
         setLoading(true);
         try {
             const response = await axios.post('http://localhost:8080/auth/login', { username, password });
-            setToken(response.data.token);
+            console.log(response);
+            const token = response.data.jwt;
+            setToken(token);
+            console.log('Logged in, token:', token);
             setLoading(false);
             navigate('/dashboard');
         } catch (err) {

@@ -5,6 +5,8 @@ import api from "../../utils/axiosConfig";
 import {flexRender, getCoreRowModel, useReactTable} from "@tanstack/react-table";
 import {Link} from "react-router-dom";
 import {Table} from "react-bootstrap";
+import {formatDistanceToNow} from "date-fns";
+import LeadStatusDropdown from "./LeadStatusDropdown";
 
 const LeadList = () => {
     const {notify} = useNotification();
@@ -21,6 +23,11 @@ const LeadList = () => {
                 setLeads(response.data);
             })
             .catch(error => {
+                if (error.response) {
+                    console.error('Response error:', error.response); // Loguj szczegóły odpowiedzi w przypadku błędu
+                } else {
+                    console.error('Error:', error.message); // Loguj ogólny błąd
+                }
                 notify('Błąd pobieranie leadów z serwera. \n' + error, 'error');
             });
     }
@@ -31,20 +38,75 @@ const LeadList = () => {
 
     const data = useMemo(() => leads, [leads])
 
+    const handleStatusChange = (leadId, newStatus) => {
+        setLeads(leads.map(lead => lead.id === leadId ? {...lead, leadStatus: newStatus} : lead))
+    }
+
     const columns = useMemo(() =>
         [
             {
                 id:'id',
                 header: 'ID',
-                accesorFn: row => row.id
+                accessorFn: row => row.id
             },
             {
                 id: 'name',
-                header: 'nazwa',
-                accesorFn: row => row.name
+                header: 'Nazwa',
+                accessorFn: row => row.name
+            },
+            {
+                id: 'clientBusinessName',
+                header: 'Firma',
+                cell: ({row}) => {
+                    return (
+                        <Link to={"/"}>
+                            {row.original.contactInfo ? row.original.contactInfo.clientBusinessName : null}
+                        </Link>
+                        )
+
+                }
+            },
+            {
+                id: 'desc',
+                header: 'Opis',
+                accessorFn: row => row.description
+            },
+            {
+                id: 'assignedEmplyee',
+                header: 'Handlowiec',
+                cell: ({row}) => {
+                    return(
+                        <Link to={"/"}>
+                            {row.original.assignedTo ? (
+                                row.original.assignedTo.avatar ? (
+                                        <img className="img-fluid" width="40" src={row.original.assignedTo.avatar}/>
+                                ) : (
+                                    "test"
+                                )
+                            ) : (
+                                "brak"
+                            )}
+
+                        </Link>
+                    )
+                }
+            },
+            {
+                id: 'leadStatus',
+                header: 'Status',
+                cell: ({row}) => (<LeadStatusDropdown leadId={row.original.id} currentStatus={row.original.leadStatus}
+                                                      onStatusChange={(newStatus) => handleStatusChange(row.original.id, newStatus)} />),
+
+            },
+            {
+                id: 'createDate',
+                header: 'Utworzony',
+                accessorFn: (row) => formatDistanceToNow(new Date(row.createdAt), { addSuffix: true }),
             }
+
+
         ]
-    , []);
+        , [leads]);
 
     const table = useReactTable({data, columns, getCoreRowModel: getCoreRowModel()});
 
@@ -76,6 +138,17 @@ const LeadList = () => {
                         </tr>
                     ))}
                     </thead>
+                    <tbody>
+                    {table.getRowModel().rows.map(row => (
+                        <tr key={row.id}>
+                            {row.getVisibleCells().map(cell => (
+                                <td key={cell.id}>
+                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                </td>
+                            ))}
+                        </tr>
+                    ))}
+                    </tbody>
                 </Table>
             </div>
 
