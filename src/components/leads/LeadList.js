@@ -7,6 +7,8 @@ import {Link} from "react-router-dom";
 import {Table} from "react-bootstrap";
 import {formatDistanceToNow} from "date-fns";
 import LeadStatusDropdown from "./LeadStatusDropdown";
+import {ErrorIcon, LoaderIcon} from "react-hot-toast";
+import {pl} from "date-fns/locale";
 
 const LeadList = () => {
     const {notify} = useNotification();
@@ -79,7 +81,11 @@ const LeadList = () => {
                         <Link to={"/"}>
                             {row.original.assignedTo ? (
                                 row.original.assignedTo.avatar ? (
+                                    <>
                                         <img className="img-fluid" width="40" src={row.original.assignedTo.avatar}/>
+                                        <p> {row.original.assignedTo.id}</p>
+                                    </>
+
                                 ) : (
                                     "test"
                                 )
@@ -100,8 +106,18 @@ const LeadList = () => {
             },
             {
                 id: 'createDate',
-                header: 'Utworzony',
-                accessorFn: (row) => formatDistanceToNow(new Date(row.createdAt), { addSuffix: true }),
+                header: 'Dodany',
+                accessorFn: (row) => formatDistanceToNow(new Date(row.createdAt), { addSuffix: false, locale: pl }),
+            },
+            {
+                id: 'offer',
+                header: 'Oferta',
+                cell: <ErrorIcon />
+            },
+            {
+                id: 'actions',
+                header: 'Akcje',
+                cell: ''
             }
 
 

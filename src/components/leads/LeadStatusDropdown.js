@@ -19,29 +19,35 @@ const LeadStatusDropdown = ({leadId, currentStatus, onStatusChange}) => {
 
     const fetchStatuses = async () => {
         try {
-            const response = await api.get('/lead-status')
-            setStatuses(response.data);
+            const resonse = await api.get("/lead-status")
+            setStatuses(resonse.data)
         } catch (error) {
-            console.log(error)
+            console.log (error)
             notify(error.message, 'error')
         }
     }
 
-    const handleSelect = async (ststusId) => {
-        const status = statuses.find(s => s.id === ststusId)
+    const handleSelect = async (statusId) => {
+        const status = statuses.find(s => s.id === parseInt(statusId))
+        if(!status) {
+            notify("Status not fund", "error")
+            return;
+        }
+
         setSelectedStatus(status);
 
         try {
-            await api.patch(`/leads/${leadId}`, {leadStatus: status});
+            await api.patch(`/leads/${leadId}`, {leadsStatus : {id: status.id}})
             onStatusChange(status);
-            notify('Status został zaktualizowany', 'succes' )
+            notify("Status zaktualizowany", "success")
         } catch (error) {
             console.log(error);
-            notify(error.message, 'error')
+            notify("Błąd: ", error.message, "error")
         }
+    }
 
 
-    };
+
 
     return (
         <Dropdown onSelect={handleSelect}>
