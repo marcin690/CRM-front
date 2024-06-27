@@ -7,7 +7,7 @@ function MainModal({title, children, show, handleClose, formId}) {
         <>
 
 
-            <Modal show={show} onHide={handleClose}>
+            <Modal show={show} onHide={handleClose} size="xl">
                 <ModalHeader closeButton>
                     <ModalTitle>{title}</ModalTitle>
                 </ModalHeader>
@@ -15,6 +15,9 @@ function MainModal({title, children, show, handleClose, formId}) {
                     {children}
                 </ModalBody>
                 <ModalFooter>
+                    <Button variant="secondary" onClick={handleClose}>
+                        Zamknij
+                    </Button>
                     <Button type="submit" form={formId}>
                         Zapisz
                     </Button>

@@ -4,35 +4,49 @@ import axios from "axios";
 import api from "../../utils/axiosConfig";
 import {flexRender, getCoreRowModel, useReactTable} from "@tanstack/react-table";
 import {Link} from "react-router-dom";
-import {Table} from "react-bootstrap";
+import {Button, ButtonGroup, OverlayTrigger, Table, Tooltip} from "react-bootstrap";
 import {formatDistanceToNow} from "date-fns";
 import LeadStatusDropdown from "./LeadStatusDropdown";
 import {ErrorIcon, LoaderIcon} from "react-hot-toast";
 import {pl} from "date-fns/locale";
+import {Chat, Eye, EyeFill, EyeSlash, Pencil, Plus, PlusCircle, Trash} from "react-bootstrap-icons";
+import AddEditLeadModal from "./AddEditLeadModal";
 
 const LeadList = () => {
     const {notify} = useNotification();
     const [leads, setLeads] = useState([]);
+    const [selectedLeads, setSelectedLead] = useState(null)
+    const [showModal,setShowModal] = useState(false)
+
+    const truncateText = (text, maxLenght) => {
+        if(text.length <= maxLenght) {
+            return text
+        }
+        return text.substring(0,maxLenght) + "..."
+    }
+
+    const handleEdit = (lead) => {
+        setSelectedLead(lead);
+        setShowModal(true)
+    }
+
+    const handleClose = () => {
+        setShowModal(false);
+        setSelectedLead(null);
+    }
+
+    const resetSelectedLead = () => {
+        setSelectedLead(null)
+    }
 
     const fetchLeads = () => {
-        const token = localStorage.getItem('token');
-        axios.get("http://localhost:8080/leads", {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        })
-            .then(response => {
-                setLeads(response.data);
-            })
+        api.get("/leads")
+            .then( response => {setLeads(response.data)})
             .catch(error => {
-                if (error.response) {
-                    console.error('Response error:', error.response); // Loguj szczegóły odpowiedzi w przypadku błędu
-                } else {
-                    console.error('Error:', error.message); // Loguj ogólny błąd
-                }
-                notify('Błąd pobieranie leadów z serwera. \n' + error, 'error');
-            });
+                notify(error.message, "error")
+            })
     }
+
 
     useEffect(() => {
         fetchLeads();
@@ -43,6 +57,7 @@ const LeadList = () => {
     const handleStatusChange = (leadId, newStatus) => {
         setLeads(leads.map(lead => lead.id === leadId ? {...lead, leadStatus: newStatus} : lead))
     }
+
 
     const columns = useMemo(() =>
         [
@@ -71,7 +86,54 @@ const LeadList = () => {
             {
                 id: 'desc',
                 header: 'Opis',
-                accessorFn: row => row.description
+                accessorFn: row => truncateText(row.description, 55)
+            },
+
+            {
+                id: 'leadStatus',
+                header: 'Status',
+                cell: ({row}) => (<LeadStatusDropdown leadId={row.original.id} currentStatus={row.original.leadStatus}
+                                                      onStatusChange={(newStatus) => handleStatusChange(row.original.id, newStatus)} />),
+
+            },
+            {
+                id: 'updatedDate',
+                header: 'Zaktualizowany',
+                accessorFn: row => row.updatedAt,
+                cell: ({row}) => {
+                    const updatedAt = new Date(row.original.updatedAt);
+                    return (
+                        <OverlayTrigger
+                            placement="top"
+                            overlay={<Tooltip id={`tooltip-top-${row.id}`}>{updatedAt.toLocaleString()}</Tooltip>}
+                        >
+                            <span>
+                              {formatDistanceToNow(updatedAt, { addSuffix: false, locale: pl })}
+                            </span>
+                        </OverlayTrigger>
+                    )
+                }
+
+
+            },
+            {
+                id: 'offer',
+                header: 'Oferta',
+                cell: <ErrorIcon />
+            },
+            {
+                id: 'actions',
+                header: 'Akcje',
+                cell: ({ row }) => (
+                    <>
+                        <button className="btn p-0 m-0" onClick={() => handleEdit(row.original)}><Pencil/></button>
+                        <button className="btn  p-1 m-0 " onClick={() => handleEdit(row.original)}><Chat/></button>
+                        <button className="btn  p-1 m-0 " onClick={() => handleEdit(row.original)}><Eye /></button>
+
+
+                    </>
+
+                )
             },
             {
                 id: 'assignedEmplyee',
@@ -83,7 +145,6 @@ const LeadList = () => {
                                 row.original.assignedTo.avatar ? (
                                     <>
                                         <img className="img-fluid" width="40" src={row.original.assignedTo.avatar}/>
-                                        <p> {row.original.assignedTo.id}</p>
                                     </>
 
                                 ) : (
@@ -97,28 +158,6 @@ const LeadList = () => {
                     )
                 }
             },
-            {
-                id: 'leadStatus',
-                header: 'Status',
-                cell: ({row}) => (<LeadStatusDropdown leadId={row.original.id} currentStatus={row.original.leadStatus}
-                                                      onStatusChange={(newStatus) => handleStatusChange(row.original.id, newStatus)} />),
-
-            },
-            {
-                id: 'createDate',
-                header: 'Dodany',
-                accessorFn: (row) => formatDistanceToNow(new Date(row.createdAt), { addSuffix: false, locale: pl }),
-            },
-            {
-                id: 'offer',
-                header: 'Oferta',
-                cell: <ErrorIcon />
-            },
-            {
-                id: 'actions',
-                header: 'Akcje',
-                cell: ''
-            }
 
 
         ]
@@ -128,12 +167,20 @@ const LeadList = () => {
 
     return(
         <div className="card">
+            <div>
+                <ButtonGroup>
+                    <button className="btn btn-soft-primary">Pokaż przypisane tylko do mnie</button>
+                    <button className="btn btn-soft-primary">Pokaż przypisane tylko do mnie</button>
+                </ButtonGroup>
+            </div>
             <div className="border-0 card-header">
-                <div className="d-flex align-items-center">
+            <div className="d-flex align-items-center">
                     <h5 className="card-title mb-0 flex-grow-1">Lista Leadów</h5>
                     <div className="d-flex gap-2">
                         <div className="d-flex gap-2 flex-wrap">
-                            <Link to="/leads/new" className="btn btn-soft-primary">Nowy lead</Link>
+                            <Link to="/leads/new" className="btn btn-soft-primary">Usuń zazaczone <Trash/></Link>
+                            <Button onClick={() => handleEdit(null)} className="btn btn-soft-primary">Nowy lead <PlusCircle /></Button>
+
                         </div>
                     </div>
                 </div>
@@ -169,7 +216,12 @@ const LeadList = () => {
             </div>
 
 
+            {showModal && <AddEditLeadModal refresLeads={fetchLeads} leadToEdit={selectedLeads} show={showModal} handleClose={handleClose} />}
+
+
         </div>
+
+
 
 
     )
