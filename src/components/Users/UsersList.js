@@ -4,6 +4,7 @@ import {useReactTable, getCoreRowModel, flexRender} from '@tanstack/react-table'
 import {Table , } from "react-bootstrap";
 import AddEditUserModal from "./AddEditUserModal";
 import {useNotification} from "../notyfications/NotyficationContext";
+import api from "../../utils/axiosConfig";
 
 
 const UsersList = () => {
@@ -21,12 +22,12 @@ const UsersList = () => {
     }
 
     const fetchUsers = () => {
-        axios.get("/users")
+        api.get("/users")
             .then(response => {
                 setUsers(response.data);
             })
             .catch(error => {
-                notify(error, 'error');
+                notify(error.message, 'error');
             });
     };
 
@@ -103,13 +104,13 @@ const UsersList = () => {
     const handleDeleteSelected = () => {
         const idsToDelete = table.getSelectedRowModel().rows.map(row => row.original.id);
         if(idsToDelete.length > 0) {
-            axios.delete("/users", {data: idsToDelete})
+            api.delete("/users", {data: idsToDelete})
                 .then(() => {
                     setUsers(prevUsers => prevUsers.filter(users => !idsToDelete.includes(users.id)));
                     fetchUsers();
                 })
                 .catch (error => {
-                console.error(error);
+                console.error(error.message);
             });
         }
     }

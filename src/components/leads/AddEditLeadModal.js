@@ -11,28 +11,28 @@ const AddEditLeadModal = ({ refresLeads, leadToEdit, show, handleClose }) => {
     const formId = "leadForm";
     const { notify } = useNotification();
 
+    const [leadSources, setLeadSources] = useState([])
+
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [roomsQuantity, setRoomsQuantity] = useState("");
     const [executionDate, setExecutionDate] = useState(null);
-    const [assignedTo, setAssignedTo] = useState(null);
-    const [users, setUsers] = useState([])
-    const [leadStatus, setLeadStatus] = useState({ id: 1 });
-    const [leadSource, setLeadSource] = useState({});
-    const [leadSources, setLeadSources] = useState([])
 
-    const [contactInfo, setContactInfo] = useState({
-        fullName: "",
-        clientBusinessName: "",
-        clientAdress: "",
-        clientCity: "",
-        clientState: "",
-        clientZip: "",
-        clientCountry: "",
-        clientEmail: "",
-        clientPhone: 0,
-        vatNumber: 0
-    });
+    const [users, setUsers] = useState([])
+    const [leadSourceId, setLeadSourceId] = useState(null);
+    const [leadStatusId, setLeadStatusId] = useState(null);
+    const [assignedTo, setAssignedTo] = useState(null);
+
+    const [clientFullName, setClientFullName] = useState("");
+    const [clientBusinessName, setClientBusinessName] = useState("");
+    const [clientAdress, setClientAdress] = useState("");
+    const [clientCity, setClientCity] = useState("");
+    const [clientState, setClientState] = useState("");
+    const [clientZip, setClientZip] = useState("");
+    const [clientCountry, setClientCountry] = useState("");
+    const [clientEmail, setClientEmail] = useState("");
+    const [clientPhone, setClientPhone] = useState("");
+    const [vatNumber, setVatNumber] = useState("");
 
     const wojewodztwa = [
         'Dolnośląskie',
@@ -86,12 +86,25 @@ const AddEditLeadModal = ({ refresLeads, leadToEdit, show, handleClose }) => {
         if (leadToEdit) {
             setName(leadToEdit.name);
             setDescription(leadToEdit.description);
-            setContactInfo(leadToEdit.contactInfo || {});
-            setLeadSource(leadToEdit.leadSource || { id: 1 })
+            setLeadSourceId(leadToEdit.leadSourceId || null);
+            setLeadStatusId(leadToEdit.leadStatusId || null);
+            setAssignedTo(leadToEdit.assignTo || null);
             setRoomsQuantity(leadToEdit.roomsQuantity)
-            setExecutionDate(leadToEdit.executionDate ? new Date(leadToEdit.executionDate) : null )
+            setExecutionDate(leadToEdit.executionDate ? new Date(leadToEdit.executionDate) : null );
+            setClientFullName(leadToEdit.clientFullName || "");
+            setClientBusinessName(leadToEdit.clientBusinessName || "");
+            setClientAdress(leadToEdit.clientAdress || "");
+            setClientCity(leadToEdit.clientCity || "");
+            setClientState(leadToEdit.clientState || "");
+            setClientZip(leadToEdit.clientZip || "");
+            setClientCountry(leadToEdit.clientCountry || "");
+            setClientEmail(leadToEdit.clientEmail || "");
+            setClientPhone(leadToEdit.clientPhone || "");
+            setVatNumber(leadToEdit.vatNumber || "");
         }
     }, [leadToEdit]);
+
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -99,28 +112,35 @@ const AddEditLeadModal = ({ refresLeads, leadToEdit, show, handleClose }) => {
         try {
             const formattedDate = executionDate ? executionDate.toISOString() : null;
 
-            let contactInfoResponse;
-            if (leadToEdit && leadToEdit.contactInfo && leadToEdit.contactInfo.id) {
-                contactInfoResponse = await api.put(`/contact-info/${leadToEdit.contactInfo.id}`, contactInfo);
-            } else {
-                contactInfoResponse = await api.post("/contact-info", contactInfo);
-            }
 
             const leadData = {
                 name,
                 description,
                 roomsQuantity,
-                contactInfo: contactInfoResponse.data,
-                leadSource: leadSource,
-                assignedTo: assignedTo,
-                executionDate: formattedDate
+                executionDate: formattedDate,
+                leadSourceId,
+                leadStatusId,
+                assignTo: assignedTo ? { id: assignedTo.id } : null,
+                clientFullName,
+                clientBusinessName,
+                clientAdress,
+                clientCity,
+                clientState,
+                clientZip,
+                clientCountry,
+                clientEmail,
+                clientPhone,
+                vatNumber,
+
             };
+
+            console.log("Wysłane dane:", leadData)
 
             if (leadToEdit) {
                 await api.patch(`/leads/${leadToEdit.id}`, leadData);
                 notify("Lead został zaktualizowany", "success");
             } else {
-                await api.put("/leads", leadData);
+                await api.post("/leads", leadData);
                 notify("Lead został dodany", "success");
             }
 
@@ -131,9 +151,43 @@ const AddEditLeadModal = ({ refresLeads, leadToEdit, show, handleClose }) => {
         }
     };
 
-    const handleContactInfoChange = (field, value) => {
-        setContactInfo((prev) => ({ ...prev, [field]: value }));
-    };
+    const handleContactInfoChange = (e) => {
+        const {name, value} = e.target;
+        switch (name) {
+            case "clientFullName":
+                setClientFullName(value);
+                break;
+            case "clientBusinessName":
+                setClientBusinessName(value);
+                break;
+            case "clientAdress":
+                setClientAdress(value);
+                break;
+            case "clientCity":
+                setClientCity(value);
+                break;
+            case "clientState":
+                setClientState(value);
+                break;
+            case "clientZip":
+                setClientZip(value);
+                break;
+            case "clientCountry":
+                setClientCountry(value);
+                break;
+            case "clientEmail":
+                setClientEmail(value);
+                break;
+            case "clientPhone":
+                setClientPhone(value);
+                break;
+            case "vatNumber":
+                setVatNumber(value);
+                break;
+            default:
+                break;
+        }
+    }
 
     return (
         <MainModal title={leadToEdit ? `Edytuj lead ${leadToEdit.name}` : "Dodaj nowy"} show={show} handleClose={handleClose} formId={formId}>
@@ -165,16 +219,11 @@ const AddEditLeadModal = ({ refresLeads, leadToEdit, show, handleClose }) => {
                 <Row>
                     <FormGroup className="col-lg-4">
                         <Form.Label>Źródło</Form.Label>
-                        <Form.Control
-                            as="select"
-                            value={leadSource.id ? leadSource.id : ""}
-                            onChange={(e) => setLeadSource(leadSources.find(ls => ls.id === parseInt(e.target.value)))}
-                        >
+                        <Form.Control as="select" value={leadStatusId || ""}
+                                      onChange={(e) => setLeadStatusId(parseInt(e.target.value))}>
                             <option value="">Wybierz źródło</option>
                             {leadSources.map((source) => (
-                                <option key={source.id} value={source.id}>
-                                    {source.description}
-                                </option>
+                                <option key={source.id} value={source.id}>{source.description}</option>
                             ))}
                         </Form.Control>
 
@@ -201,27 +250,23 @@ const AddEditLeadModal = ({ refresLeads, leadToEdit, show, handleClose }) => {
                     <h5 >Informacje kontaktowe</h5>
                     <FormGroup className="col-lg-3">
                         <Form.Label>Imię i nazwisko</Form.Label>
-                        <Form.Control type="text" placeholder="Imię i nazwisko" value={contactInfo.fullName}
-                                      onChange={(e) => handleContactInfoChange("fullName", e.target.value)} required/>
+                        <Form.Control type="text" placeholder="Imię i nazwisko" name="clientFullName" value={clientFullName} onChange={handleContactInfoChange} required/>
                     </FormGroup>
                     <FormGroup className="col-lg-3">
                         <Form.Label>Nazwa firmy</Form.Label>
-                        <Form.Control type="text" placeholder="Nazwa firmy" value={contactInfo.clientBusinessName}
-                                      onChange={(e) => handleContactInfoChange("clientBusinessName", e.target.value)}/>
+                        <Form.Control type="text" placeholder="Nazwa firmy" name="clientBusinessName" value={clientBusinessName} onChange={handleContactInfoChange}/>
                     </FormGroup>
                     <FormGroup className="col-lg-3">
                         <Form.Label>Adres</Form.Label>
-                        <Form.Control type="text" placeholder="Adres" value={contactInfo.clientAdress}
-                                      onChange={(e) => handleContactInfoChange("clientAdress", e.target.value)}/>
+                        <Form.Control type="text" placeholder="Adres" name="clientAdress" value={clientAdress} onChange={handleContactInfoChange} />
                     </FormGroup>
                     <FormGroup className="col-lg-3">
                         <Form.Label>Miasto</Form.Label>
-                        <Form.Control type="text" placeholder="Miasto" value={contactInfo.clientCity}
-                                      onChange={(e) => handleContactInfoChange("clientCity", e.target.value)}/>
+                        <Form.Control type="text" placeholder="Miasto" name="clientCity" value={clientCity} onChange={handleContactInfoChange}/>
                     </FormGroup>
                     <FormGroup className="col-lg-3">
                         <Form.Label>Województwo</Form.Label>
-                        <Form.Control as="select" value={contactInfo.clientState} onChange={(e) => handleContactInfoChange("clientState", e.target.value)}>
+                        <Form.Control as="select" name="clientState" value={clientState} onChange={handleContactInfoChange}>
                             <option>Wybierz województwo</option>
                             {wojewodztwa.map((wojewodztwo, index) => (
                                 <option key={index} value={wojewodztwo}>
@@ -232,29 +277,24 @@ const AddEditLeadModal = ({ refresLeads, leadToEdit, show, handleClose }) => {
                     </FormGroup>
                     <FormGroup className="col-lg-3">
                         <Form.Label>Kod pocztowy</Form.Label>
-                        <Form.Control type="text" placeholder="Kod pocztowy" value={contactInfo.clientZip}
-                                      onChange={(e) => handleContactInfoChange("clientZip", e.target.value)}/>
+                        <Form.Control type="text" placeholder="Kod pocztowy" name="clientZip" value={clientZip} onChange={handleContactInfoChange}/>
                     </FormGroup>
                     <FormGroup className="col-lg-3">
                         <Form.Label>Kraj</Form.Label>
-                        <Form.Control type="text" placeholder="Kraj" value={contactInfo.clientCountry || "Polska"}
-                                      onChange={(e) => handleContactInfoChange("clientCountry", e.target.value)}/>
+                        <Form.Control type="text" placeholder="Kraj" name='clientCountry' value={clientCountry || "Polska"} onChange={handleContactInfoChange}/>
                     </FormGroup>
                     <FormGroup className="col-lg-3">
                         <Form.Label>Email</Form.Label>
-                        <Form.Control type="email" placeholder="Email" value={contactInfo.clientEmail}
-                                      onChange={(e) => handleContactInfoChange("clientEmail", e.target.value)}
+                        <Form.Control type="email" placeholder="Email" name="clientEmail" value={clientEmail} onChange={handleContactInfoChange}
                                       required/>
                     </FormGroup>
                     <FormGroup className="col-lg-3">
                         <Form.Label>Numer telefonu</Form.Label>
-                        <Form.Control type="number" placeholder="Numer telefonu" value={contactInfo.clientPhone}
-                                      onChange={(e) => handleContactInfoChange("clientPhone", e.target.value)}/>
+                        <Form.Control type="number" placeholder="Numer telefonu" name="clientPhone" value={clientPhone} onChange={handleContactInfoChange}/>
                     </FormGroup>
                     <FormGroup className="col-lg-3">
                         <Form.Label>Numer VAT</Form.Label>
-                        <Form.Control type="number" placeholder="Numer VAT" value={contactInfo.vatNumber}
-                                      onChange={(e) => handleContactInfoChange("vatNumber", e.target.value)}/>
+                        <Form.Control type="number" placeholder="Numer VAT" name="vatNumber" value={vatNumber} onChange={handleContactInfoChange}/>
                     </FormGroup>
                 </Row>
 

@@ -1,8 +1,8 @@
 import React, {useEffect, useState} from "react";
-import {Button, Form, FormGroup} from "react-bootstrap";
+import {Button, Form, FormCheck, FormGroup} from "react-bootstrap";
 import MainModal from "../MainModal";
-import axios from "axios";
 import {useNotification} from "../notyfications/NotyficationContext";
+import api from "../../utils/axiosConfig";
 
 
 
@@ -13,10 +13,12 @@ function AddEditUserModal({refreshUsers, userToEdit}) {
     const [show, setShow] = useState(false)
     const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
-    // const [role, setRole] = useState("USER")
+    const [role, setRole] = useState("USER")
     const [fullname, setFullname] = useState("")
     const [phone, setPhone] = useState("")
     const [email, setEmail] = useState("");
+    const [isSalesRepresentative, setIsSalesRepresentative] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
     const handleShow = () =>  {
         resetForm();
         setShow(true)
@@ -33,7 +35,7 @@ function AddEditUserModal({refreshUsers, userToEdit}) {
         setFullname("");
         setPhone("");
         setEmail("");
-        // setRole("USER");
+
     };
 
     useEffect(() => {
@@ -42,7 +44,17 @@ function AddEditUserModal({refreshUsers, userToEdit}) {
             setFullname(userToEdit.fullname);
             setPhone(userToEdit.phone);
             setEmail(userToEdit.email);
-            // setRole(userToEdit.roles[0]?.name || "USER");
+
+            setIsSalesRepresentative(userToEdit.isSalesRepresentative || false);
+
+
+            if(Array.isArray(userToEdit.roles &&userToEdit.roles.length > 1)){
+                setRole(userToEdit.roles[0].name || "USER");
+                setIsAdmin(userToEdit.roles.some(role => role.name === "ADMIN"));
+            } else {
+                setRole("USER");
+                setIsAdmin(false);
+            }
             setShow(true); // Open the modal if userToEdit is not null
         }
     }, [userToEdit]);
@@ -55,22 +67,23 @@ function AddEditUserModal({refreshUsers, userToEdit}) {
             fullname: fullname,
             phone: phone,
             email: email,
-            // roles: [{name: role}]
+            roles: isAdmin ? [{name: "ADMIN"}] : [{name: role}],
+            isSalesRepresentative: isSalesRepresentative
 
         };
 
         try {
             if(userToEdit) {
-                await axios.patch(`/users/edit/${userToEdit.id}`, userData)
+                await api.patch(`/users/edit/${userToEdit.id}`, userData)
                 notify('Użytkownik został zaktualizowany', 'success');
             } else {
-                await axios.post("/auth/register", userData)
+                await api.post("/auth/register", userData)
                 notify('Użytkownik został dodany', 'success');
             }
             refreshUsers();
             handleClose();
         } catch (error) {
-            notify(error, 'error');
+            notify(error.message, 'error');
         }
     }
     return (
@@ -87,6 +100,8 @@ function AddEditUserModal({refreshUsers, userToEdit}) {
                         </Form.Control>
 
                     </Form.Group>
+
+
 
                     <Form.Group>
                         <Form.Label>Hasło</Form.Label>
@@ -107,6 +122,18 @@ function AddEditUserModal({refreshUsers, userToEdit}) {
                         <Form.Label>Numer telefonu</Form.Label>
                         <Form.Control type="number" placeholder="Numer telefonu" value={phone} onChange={(e) => setPhone(e.target.value)}></Form.Control>
                     </FormGroup>
+
+                    <Form.Group className="mb-3" controlId="formUsername">
+
+                        <Form.Label>Opcje </Form.Label>
+                        <Form.Check type="checkbox" checked={isSalesRepresentative} label="Handlowiec"
+                        onChange={() => setIsSalesRepresentative(!isSalesRepresentative)}
+                        ></Form.Check>
+                        <Form.Check type="checkbox" checked={isAdmin} label="Administrator"
+                        onChange={() => setIsAdmin(!isAdmin)}
+                        ></Form.Check>
+
+                    </Form.Group>
 
 
                 </Form>
