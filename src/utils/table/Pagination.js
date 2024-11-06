@@ -1,51 +1,64 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-const Pagination = ({currentPage, totalPages, onPageChange}) => {
+const Pagination = ({links, totalPages, currentPage, onPageChange}) => {
 
-    const handlePreviousPage = () => {
-        if (currentPage > 0){
-            onPageChange(currentPage - 1)
+        const handleLinkClick = (url) => {
+            if (url) {
+                onPageChange(url)
+            }
         }
-    }
 
-    const handleNextPage = () => {
-        if(currentPage < totalPages - 1){
-            onPageChange(currentPage + 1)
+    const renderPageNumbers = () => {
+        const pages = [];
+        for (let i = 0; i < totalPages; i++) {
+            pages.push(
+                <li key={i} className={`page-item ${currentPage === i ? 'active' : ''}`}>
+                    <button
+                        className="page-link"
+                        onClick={() => {
+                            handleLinkClick(`/leads?page=${i}&size=50`);
+                        }}
+                    >
+                        {i + 1}
+                    </button>
+                </li>
+            );
         }
-    }
+        return pages;
+    };
 
-    return (
-        <div className="d-flex justify-content-between align-items-center">
-            <button
-                className="btn btn-primary"
-                onClick={handlePreviousPage}
-                disabled={currentPage === 0}
-            >
-                Poprzednia
-            </button>
+        return (
+            <div className=" d-flex justify-content-center align-items-center pt-4">
+                <nav aria-label="Page navigation">
+                    <ul className="pagination">
+                        <li
+                            className={`page-item ${!links.prev ? 'disabled' : ''}`}
+                        >
+                            <button className="page-link"
+                                    onClick={() => {
+                                        handleLinkClick(links.prev?.href)
+                                    }}
+                                    disabled={!links.prev}
+                            >
+                                Poprzednia strona
+                            </button>
+                        </li>
+                        {renderPageNumbers()}
 
-            <span>
-                Strona {currentPage + 1 } z {totalPages}
-            </span>
+                        <li className={`page-item ${!links.next ? 'disabled' : ''}`}>
+                            <button className="page-link"
+                                    onClick={() => handleLinkClick(links.next?.href)}
+                                    disabled={!links.next}
+                            >
+                                Następna strona
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
 
-            <button
-                className="btn btn-primary"
-                onClick={handlePreviousPage}
-                disabled={currentPage === totalPages - 1}
-            >
-                Poprzednia
-            </button>
-
-        </div>
-    )
+        )
 
 }
-
-Pagination.propTypes = {
-    currentPage: PropTypes.number.isRequired,
-    totalPages: PropTypes.number.isRequired,
-    onPageChange: PropTypes.func.isRequired
-}
-
 export default Pagination;
