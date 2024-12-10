@@ -19,6 +19,11 @@ import UsersList from "./components/Users/UsersList";
 import {Toaster} from "react-hot-toast";
 import {NotificationProvider} from "./components/notyfications/NotyficationContext";
 import LeadList from "./components/leads/LeadList";
+import OffersList from "./components/offers/OffersList";
+import Offers from "./pages/offers/Offers";
+import OfferDetails from "./components/offers/OfferDetails";
+import OffersDetailsPage from "./pages/offers/OffersDetailsPage";
+import AddEditOffersPage from "./pages/offers/AddEditOffersPage";
 
 
 
@@ -48,6 +53,11 @@ const App = () => {
                       <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
                       <Route path="/users" element={<PrivateRoute><UsersList /></PrivateRoute>} />
                       <Route path="/leads" element={<PrivateRoute><LeadList /></PrivateRoute>} />
+                      <Route path="/offers" element={<PrivateRoute><Offers></Offers></PrivateRoute>} />
+                      <Route path="/offers/:id" element={<PrivateRoute><OffersDetailsPage></OffersDetailsPage></PrivateRoute>} />
+                      <Route path="/offers/add" element={<PrivateRoute><AddEditOffersPage></AddEditOffersPage></PrivateRoute>} />
+                      <Route path="/offers/edit/:id" element={<PrivateRoute><AddEditOffersPage></AddEditOffersPage></PrivateRoute>} />
+
 
 
                   </Routes>

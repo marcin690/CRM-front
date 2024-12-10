@@ -8,6 +8,16 @@ const api = axios.create({
     }
 });
 
+export const fetchCommentCount = async (entityType, entityId) => {
+    try {
+        const response = await api.get(`/comments/${entityType}/${entityId}/count`);
+        return response.data || 0
+    } catch (error) {
+        console.error(`Nie udało się pobrać liczby komentarzy dla ${entityType} o ID ${entityId}:`, error);
+        return 0;
+    }
+}
+
 api.interceptors.request.use(config => {
     const token = getToken();
     if (token) {

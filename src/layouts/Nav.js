@@ -31,6 +31,12 @@ const AppMenu = () => {
 
 
                         </li>
+                        <li className="nav-item">
+                            <Link to="/offers" className="nav-link menu-link active"> <span
+                                data-key="t-apps">Oferty</span></Link>
+
+
+                        </li>
                         <li className="menu-title"><span data-key="t-menu">Menu</span></li>
                         <li className="nav-item">
                             <Link to="/users" className="nav-link menu-link active"> <span

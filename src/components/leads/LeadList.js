@@ -17,6 +17,7 @@ import Pagination from "../../utils/table/Pagination";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css"
 import { pl } from "date-fns/locale";
+import CommentModal from "../modals/CommentModal";
 
 
 const LeadList = () => {
@@ -32,6 +33,8 @@ const LeadList = () => {
     const statuses = useLeadStatuses();
     const [links, setLinks] = useState([])
 
+;
+
     // Filtrowanie
 
     const [dateRange, setDateRange] = useState([null, null])
@@ -42,6 +45,13 @@ const LeadList = () => {
     const [currentPage, setCurrentPage] = useState(0); // Strona aktualna
     const [pageSize] = useState(35); // Ustalmy rozmiar strony
     const [totalPages, setTotalPages] = useState(0); // Całkowita liczba stron
+
+
+    // Comments
+    const [currentClientGlobalId, setCurrentClientGlobalId] = useState(null)
+    const [showCommentModal, setShowCommentModal] = useState(null);
+    const [currentEntityType, setCurrentEntityType] = useState(null);
+    const [currentEntityId, setCurrentEntityId] = useState(null)
 
     const {
         selectedItems,
@@ -63,6 +73,8 @@ const LeadList = () => {
         setShowModal(false);
         setSelectedLead(null);
     }
+
+
 
 
 
@@ -91,7 +103,12 @@ const LeadList = () => {
                 setCurrentPage(page.number); // Zapisz aktualną stronę
             })
             .catch(error => {
-                notify(error.message, "error");
+                const errorMessage =
+                    error.response?.data?.message || // Próba odczytania wiadomości z backendu
+                    error.response?.statusText ||   // Próba odczytania statusu HTTP
+                    "Nieznany błąd";                // Domyślna wiadomość
+
+                notify(`Bład: ${errorMessage}`, "error");
             });
     };
 
@@ -143,7 +160,12 @@ const LeadList = () => {
             const response = await api.get('/users/sellers');
             setUsers(response.data); // Zapisz handlowców w stanie
         } catch (error) {
-            notify('Nie można pobrać listy użytkowników', 'error');
+            const errorMessage =
+                error.response?.data?.message || // Próba odczytania wiadomości z backendu
+                error.response?.statusText ||   // Próba odczytania statusu HTTP
+                "Nieznany błąd";                // Domyślna wiadomość
+
+            notify(`Bład: ${errorMessage}`, "error");
         }
     };
 
@@ -172,8 +194,12 @@ const LeadList = () => {
             clearSelection(); // Wyczyść zaznaczenie po usunięciu
 
         } catch (error) {
-            console.log(error);
-            notify(error.message, "error");
+            const errorMessage =
+                error.response?.data?.message || // Próba odczytania wiadomości z backendu
+                error.response?.statusText ||   // Próba odczytania statusu HTTP
+                "Nieznany błąd";                // Domyślna wiadomość
+
+            notify(`Bład: ${errorMessage}`, "error");
         }
     };
 
@@ -182,6 +208,17 @@ const LeadList = () => {
         fetchSellers();  // Pobieranie listy handlowców
     }, []);
 
+    const handleShowComments = (clientGlobalId, entityType, entityId) => {
+        setCurrentClientGlobalId(clientGlobalId);
+        setCurrentEntityType(entityType);
+        setCurrentEntityId(entityId);
+        setShowCommentModal(true);
+    };
+
+    const handleCloseComments = () => {
+        setShowCommentModal(false)
+        setCurrentClientGlobalId(null)
+    }
 
     const columns = useMemo(() =>
         [
@@ -252,7 +289,7 @@ const LeadList = () => {
                 id: 'assignedEmplyee',
                 header: 'Przypisany',
                 cell: ({row}) => {
-                    console.log("Rendering row:", row.original);
+
                     return (
                         <>
                             {row.original.assignTo ? (
@@ -271,8 +308,14 @@ const LeadList = () => {
                 cell: ({ row }) => (
                     <>
                         <button className="btn p-0 m-0" onClick={() => handleEdit(row.original)}><Pencil/></button>
-                        <button className="btn  p-1 m-0 " onClick={() => handleEdit(row.original)}><Chat/></button>
-                        <button className="btn  p-1 m-0 " onClick={() => handleEdit(row.original)}><Eye /></button>
+                        <button
+                            className="btn p-1 m-0"
+                            onClick={() =>
+                                handleShowComments(row.original.clientGlobalId, "LEAD", row.original.id)
+                            }
+                        >
+                            <Chat/>
+                        </button>
 
 
                     </>
@@ -303,6 +346,8 @@ const LeadList = () => {
             handleFilter();
         }
     }
+
+
 
     return(
         <>
@@ -461,11 +506,21 @@ const LeadList = () => {
 
 
         </div>
-
+            <CommentModal
+                show={showCommentModal}
+                handleClose={handleCloseComments}
+                clientGlobalId={currentClientGlobalId}
+                entityType={currentEntityType}
+                entityId={currentEntityId}
+            />
         </>
 
 
+
+
     )
+
+
 }
 
 export default LeadList;

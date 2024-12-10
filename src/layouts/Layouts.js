@@ -11,11 +11,13 @@ const Layouts = ({children}) => {
                     <Container fluid>
                         <Header/>
                         <Nav/>
-
-
-                        {children}
-
                     </Container>
+
+                    <Container fluid>
+                    {children}
+                    </Container>
+
+
                 </div>
             </div>
         </React.Fragment>

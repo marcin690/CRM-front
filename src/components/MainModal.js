@@ -1,13 +1,13 @@
 import React, {useState} from "react";
 import {Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle} from "react-bootstrap";
 
-function MainModal({title, children, show, handleClose, formId}) {
+function MainModal({title, children, show, handleClose, formId, size= "xl"}) {
 
     return (
         <>
 
 
-            <Modal show={show} onHide={handleClose} size="xl">
+            <Modal show={show} onHide={handleClose} size={size}>
                 <ModalHeader closeButton>
                     <ModalTitle>{title}</ModalTitle>
                 </ModalHeader>
