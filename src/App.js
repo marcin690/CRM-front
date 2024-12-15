@@ -24,6 +24,11 @@ import Offers from "./pages/offers/Offers";
 import OfferDetails from "./components/offers/OfferDetails";
 import OffersDetailsPage from "./pages/offers/OffersDetailsPage";
 import AddEditOffersPage from "./pages/offers/AddEditOffersPage";
+import {registerLocale} from "react-datepicker";
+import {pl} from "date-fns/locale";
+
+
+registerLocale("pl", pl)
 
 
 

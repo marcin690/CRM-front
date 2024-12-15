@@ -9,10 +9,12 @@ const OfferStatusChange = ({offerId, currentStatus}) => {
     const {notify} = useNotification();
 
     const offerStatuses = [
+        { value: "DRAFT", label: "Szkic", color: "" },
         { value: "SENT", label: "Wysłana", color: "text-primary" },
         { value: "ACCEPTED", label: "Zaakceptowana", color: "text-success" },
         { value: "REJECTED", label: "Odrzucona", color: "text-danger" },
         { value: "SIGNED", label: "Podpisana umowa", color: "text-warning" },
+
     ];
     const handleStatusChange = async (e) => {
         const newStatus = e.target.value
@@ -22,6 +24,19 @@ const OfferStatusChange = ({offerId, currentStatus}) => {
         try {
             await api.put(`/offers/${offerId}/status`, JSON.stringify(newStatus));
             notify("Status został zaktualizowany!", "success");
+
+            if (newStatus === "SIGNED"){
+                const currentDate = new Date().toISOString();
+                const payload = {
+                    offerStatus: "SIGNED",
+                    contractSigned: true,
+                    signedContractDate: currentDate,
+                }
+
+                await api.patch(`/offers/${offerId}`, payload);
+                notify("Dane oferty zostały zaktualizowane dla podpisanej umowy!", "success");
+            }
+
         } catch {
             notify("Nie udało się zaktualizować statusu", "error");
         } finally {

@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-const Pagination = ({links, totalPages, currentPage, onPageChange}) => {
+const Pagination = ({links, totalPages, currentPage, onPageChange, pageSize}) => {
 
         const handleLinkClick = (url) => {
             if (url) {
@@ -14,10 +14,11 @@ const Pagination = ({links, totalPages, currentPage, onPageChange}) => {
         for (let i = 0; i < totalPages; i++) {
             pages.push(
                 <li key={i} className={`page-item ${currentPage === i ? 'active' : ''}`}>
+
                     <button
                         className="page-link"
                         onClick={() => {
-                            handleLinkClick(`/leads?page=${i}&size=50`);
+                            handleLinkClick(`?page=${i}&size=${pageSize}`);
                         }}
                     >
                         {i + 1}

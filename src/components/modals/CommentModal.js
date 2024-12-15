@@ -28,10 +28,10 @@ function CommentModal({show, handleClose, clientGlobalId, entityId, entityType})
     const [commentSentiment, setCommentSentiment] = useState("NEUTRAL");
     const [eventDate, setEventDate] = useState(new Date());
     const { notify } = useNotification();
+    const [filters, setFilters] = useState(["LEAD", "OFFER", "PROJECT", "CLIENT"])
 
     useEffect(() => {
-        console.log("clientGlobalId in useEffect:", clientGlobalId); // Debug
-        console.log("show in useEffect:", show); // Debug
+
         if (clientGlobalId && show) {
             fetchComments(clientGlobalId);
         }
@@ -69,7 +69,6 @@ function CommentModal({show, handleClose, clientGlobalId, entityId, entityType})
                 data.projectId = entityId;
             }
 
-            console.log("Wysyłane dane:", data); // Debugowanie
 
 
             await api.post("/comments", data)
@@ -81,7 +80,17 @@ function CommentModal({show, handleClose, clientGlobalId, entityId, entityType})
         }
     }
 
-    const filteredComments = comments.filter((comment) => filter ? comment.entityType === filter : true)
+    const toggleFilter = (filterType) => {
+        setFilters((prevFilters) =>
+            prevFilters.includes(filterType)
+                ? prevFilters.filter((filter) => filter !== filterType) // Usuń, jeśli istnieje
+                : [...prevFilters, filterType] // Dodaj, jeśli nie istnieje
+        );
+    };
+
+    const filteredComments = comments.filter((comment) =>
+        filters.length > 0 ? filters.includes(comment.entityType) : true
+    );
 
     const handleDeleteComment = async (commentId) => {
         const confirmDelete = window.confirm("Czy na pewno chcesz usunąć ten komentarz?")
@@ -161,18 +170,21 @@ function CommentModal({show, handleClose, clientGlobalId, entityId, entityType})
                         </div>
                     </Tab>
                     <Tab eventKey="history" title="Historia">
-                        <div>
-                            <label htmlFor="filter" className="form-label">Filtruj według źródła</label>
-                            <select id="filter" className="form-select" value={filter}
-                                    onChange={(e) => setFilter(e.target.value)}
-                            >
-                                <option value="">Wszystkie</option>
-                                <option value="LEAD">Lead</option>
-                                <option value="PROJECT">Projekt</option>
-                                <option value="OFFER">Projekt</option>
-
-
-                            </select>
+                        <div className="pb-3">
+                            <label className="form-label">Filtruj według źródła</label>
+                            <div className="d-flex flex-wrap">
+                                {["LEAD", "OFFER", "PROJECT", "CLIENT"].map((type) => (
+                                    <Form.Check
+                                        key={type}
+                                        type="checkbox"
+                                        id={`filter-${type}`}
+                                        label={type}
+                                        checked={filters.includes(type)}
+                                        onChange={() => toggleFilter(type)}
+                                        className="me-3"
+                                    />
+                                ))}
+                            </div>
                         </div>
 
                         {loading ? (
@@ -184,6 +196,7 @@ function CommentModal({show, handleClose, clientGlobalId, entityId, entityType})
                                 <th></th>
                                 <th>Treść</th>
                                 <th>Data</th>
+                                <th>Autor</th>
                                 <th>Akcje</th>
 
                                 </thead>
@@ -199,6 +212,7 @@ function CommentModal({show, handleClose, clientGlobalId, entityId, entityType})
                                                     <EmojiFrownFill color="red"/>}</td>
                                             <td dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(comment.content)}}></td>
                                             <td>{new Date(comment.eventDate).toLocaleDateString()}</td>
+                                            <td>{comment.createdBy}</td>
                                             <td>
 
                                                 <X

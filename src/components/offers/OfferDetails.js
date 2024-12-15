@@ -2,15 +2,17 @@ import {useNavigate, useParams} from "react-router-dom";
 import React, {useEffect, useState} from "react";
 import {useNotification} from "../notyfications/NotyficationContext";
 import api from "../../utils/axiosConfig";
-import OfferDetailsHeader from "./OfferDetailsHeader";
-import {Container, Table} from "react-bootstrap";
-import {Calendar, Calendar2Check, Chat, Pencil, SignIntersection, Trash} from "react-bootstrap-icons";
+import { Table} from "react-bootstrap";
+import { Calendar2Check, Chat, Pencil, SignIntersection, Trash} from "react-bootstrap-icons";
 import {formatPrice} from "../../utils/FormatPrice";
 import OfferStatusForm from "./OfferStatusForm";
-import OfferDesicionModal from "./OfferDesicionModal";
+
 import OfferDecisionModal from "./OfferDesicionModal";
 import CommentModal from "../modals/CommentModal";
 import {fetchCommentCount} from "../../utils/axiosConfig";
+import OfferTimeline from "./OfferTimeline";
+import {format} from "date-fns";
+import {pl} from "date-fns/locale";
 
 const OfferDetails = () => {
 
@@ -85,10 +87,41 @@ const OfferDetails = () => {
         return `${formatPrice(amount, currency)}`;
     };
 
+    const handleResetDecision = async  () => {
+        try {
+            const payload = {
+                approvalReason: null,
+                rejectionReason: null,
+                rejectionOrApprovalDate: null,
+                rejectionReasonComment: null,
+                offerStatus: "DRAFT",
+            }
+
+            await api.patch(`/offers/${id}`, payload)
+            notify("Decyzja dotycząca oferty została usunięta.", "success");
+
+            const response = await api.get(`/offers/${id}`);
+            setOffer(response.data);
+        } catch (error) {
+            const errorMessage =
+                error.response?.data?.message || // Próba odczytania wiadomości z backendu
+                error.response?.statusText ||   // Próba odczytania statusu HTTP
+                "Nieznany błąd";                // Domyślna wiadomość
+
+            notify(`Błąd: ${errorMessage}`, "error");
+        }
+    }
+
     const ClientType = {
         NEW_CLIENT: { description: "Klient nowy" },
         CURRENT_CLIENT: { description: "Klient obecnie obsługiwany" },
         RETURNING_CLIENT: { description: "Klient powracający" },
+    };
+
+    const SalesOpportunityLevel = {
+        LOW: { description: "Mały poziom szansy sprzedaży" },
+        MODERATE: { description: "Umiarkowany poziom szansy sprzedaży" },
+        HIGH: { description: "Duży poziom szansy sprzedaży" },
     };
 
     const InvestorType = {
@@ -110,6 +143,8 @@ const OfferDetails = () => {
         INDEPENDENT_HOTELS: { description: "Hotele niezależne" },
         STORE: { description: "Sklep" },
     };
+    console.log(offer);
+
 
     if (error) return <p>{error}</p>
     if (!offer) return <p>Ładowanie oferty...</p>;
@@ -147,7 +182,7 @@ const OfferDetails = () => {
                         <div className="page-title-right ">
 
 
-                            <button type="submit" disabled={offer.offerStatus !== "SENT"}
+                            <button type="submit" disabled={offer.offerStatus === "ACCEPTED" || offer.offerStatus === "REJECTED" }
                                     className="btn btn-primary " onClick={handleOpenDesicionModal}
                             >
                                 Zaakceptuj lub odrzuć
@@ -177,11 +212,15 @@ const OfferDetails = () => {
             </div>
             <div class="row">
                 <div class="col-xxl-8">
-                    <div className="card">
+                    <div className="card pb-0 mb-0">
 
                         <div className="card-header d-flex justify-content-between">
-                            <h5 className="card-title mb-0">{offer.name}
-                            </h5>
+                            <div className="d-flex ">
+
+                                <h5 className="card-title mb-0">{offer.name}</h5>
+                            </div>
+
+
 
                             <div className="d-flex flex-row align-items-end">
                                 <small className="d-flex align-items-center"><Calendar2Check
@@ -193,17 +232,8 @@ const OfferDetails = () => {
 
                         </div>
                         <div className="card-body">
-                            {offer.rejectionOrApprovalDate && (
-                                <div className={`alert ${offer.offerStatus == "ACCEPTED" ? 'alert-success' : 'alert-danger'}`} role="alert">
-                                    Oferta została {offer.offerStatus == "ACCEPTED" ? 'zaakceptowana' : 'odrzucona'} w
-                                    dniu: {new Date(offer.rejectionOrApprovalDate).toLocaleDateString()}
-                                    <br/>
-                                 {offer.offerStatus === "ACCEPTED"
-                                    ? offer.approvalReason
-                                    : `Powód: ${offer.rejectionReason || "Brak powodu"} - ${offer.rejectionReasonComment || "Brak komentarza"}`}
 
-                                </div>
-                            )}
+                            <div>   <OfferTimeline offer={offer} /></div>
 
                             <div>{offer.description}</div>
 
@@ -247,7 +277,27 @@ const OfferDetails = () => {
                             </tr>
                             </tbody>
                         </Table>
+
+
                     </div>
+                    <div className="d-flex justify-content-between pt-2">
+                        <div>  {(offer.offerStatus === "ACCEPTED" || offer.offerStatus === "REJECTED") && (
+                            <div className="pt-0">
+                                <a className="btn btn-link p-0 m-0" onClick={handleResetDecision}
+                                   disabled={offer.offerStatus === "DRAFT"}>
+                                    Usuń decyzję dotyczące oferty
+                                </a>
+                            </div>
+                        )}</div>
+                        <div className="pt-0">
+                            <small>
+
+                                Ostatnio zaktualizowane w dniu {format(new Date(offer.lastModifiedDate), "dd.MM.yyyy, HH:mm:ss", { locale: pl })} przez {offer.lastModifiedBy}
+
+                            </small>
+                        </div>
+                    </div>
+
 
                 </div>
                 <div className="col-xxl-4">
@@ -257,42 +307,77 @@ const OfferDetails = () => {
                         <div className="card-header"><h5 className="card-title mb-0">Historia</h5></div>
                         <div className="card-body">
 
-                            <div className="table-responsive table-card">
-                                <table className="table-borderless align-middle mb-0 table ">
-                                    <OfferStatusForm offerId={offer.id} currentStatus={offer.offerStatus}/>
+                        <div className="table-responsive table-card">
+                            <table className="table-borderless align-middle mb-0 table ">
+                                <OfferStatusForm offerId={offer.id} currentStatus={offer.offerStatus}/>
+                                <tr className="mt-3">
+                                    <td className="py-3 fw-medium">Łączna kwota netto</td>
+                                    <td>
+
+                                        {formatCurrency(offer.totalPrice, "PLN")}
+
+                                    </td>
+
+                                </tr>
+                                {offer.totalPriceInEUR && (
                                     <tr className="mt-3">
-                                        <td className="py-3 fw-medium">Łączna kwota netto</td>
-                                        <td>
-
-                                            {formatCurrency(offer.totalPrice, "PLN")}
-
+                                        <td className="py-3 fw-medium">Łączna kwota netto €</td>
+                                        <td className=" ">
+                                            {formatCurrency(offer.totalPrice, "EUR")}
+                                            <small>(Kurs: {offer.euroExchangeRate}€)</small>
                                         </td>
+                                    </tr>
+                                )}
+                                <tr>
+                                    <td className="py-3 fw-medium">Szansa sprzedaży</td>
+                                    <td>
+                                        {offer.salesOpportunityLevel && (
+                                            <div className="p-0 m-0  d-flex align-items-center">
+                                                {SalesOpportunityLevel[offer.salesOpportunityLevel]?.description}
+                                                <span className="ms-2">
+                                                {offer.salesOpportunityLevel === "LOW" && (
+                                                    <i className="ri-signal-wifi-line text-danger" title="Niska szansa sprzedaży"></i>
+                                                )}
+                                                                                {offer.salesOpportunityLevel === "MODERATE" && (
+                                                                                    <i className="ri-signal-wifi-2-line text-warning"
+                                                                                       title="Umiarkowana szansa sprzedaży"></i>
+                                                                                )}
+                                                                                {offer.salesOpportunityLevel === "HIGH" && (
+                                                                                    <i className="ri-signal-wifi-fill text-success"
+                                                                                       title="Wysoka szansa sprzedaży"></i>
+                                                                                )}
+                                            </span>
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
 
-                                    </tr>
-                                    {offer.totalPriceInEUR && (
-                                        <tr className="mt-3">
-                                            <td className="py-3 fw-medium">Łączna kwota netto €</td>
-                                            <td className=" ">
-                                                {formatCurrency(offer.totalPrice, "EUR")}
-                                                <small>(Kurs: {offer.euroExchangeRate}€)</small>
-                                            </td>
-                                        </tr>
-                                    )}
-
-                                    <tr>
-                                        <td className="py-3 fw-medium">Typ klienta</td>
-                                        <td>{offer.clientType && ClientType[offer.clientType]?.description}</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="py-3 fw-medium">Typ inwestora</td>
-                                        <td>{offer.investorType && InvestorType[offer.investorType]?.description}</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="py-3 fw-medium">Typ obiektu</td>
-                                        <td>{offer.objectType && ObjectType[offer.objectType]?.description}</td>
-                                    </tr>
-                                </table>
-                            </div>
+                                <tr>
+                                    <td className="py-3 fw-medium">Typ klienta</td>
+                                    <td>{offer.clientType && ClientType[offer.clientType]?.description}</td>
+                                </tr>
+                                <tr>
+                                    <td className="py-3 fw-medium">Typ inwestora</td>
+                                    <td>{offer.investorType && InvestorType[offer.investorType]?.description}</td>
+                                </tr>
+                                <tr>
+                                    <td className="py-3 fw-medium">Typ obiektu</td>
+                                    <td>{offer.objectType && ObjectType[offer.objectType]?.description}</td>
+                                </tr>
+                                <tr>
+                                    <td className="py-3 fw-medium">Handlowiec</td>
+                                    <td>
+                                        {offer.user && (
+                                            <>
+                                                <img className="p-0 me-2 avatar" width="25px" src={offer.user.avatar}
+                                                     alt="Avatar"/>
+                                                {offer.user.fullname}
+                                            </>
+                                        )}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
                         </div>
                     </div>
                 </div>

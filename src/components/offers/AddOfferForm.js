@@ -5,7 +5,7 @@ import api from "../../utils/axiosConfig";
 import nav from "../../layouts/Nav";
 import LeadSearchDropdown from "./LeadSearchDropdown";
 import ClientSearchDropdown from "./ClientSearchDropdown";
-import {Trash} from "react-bootstrap-icons";
+import {Disc, Floppy, Floppy2, PlusCircle, SafeFill, Save, Save2, Trash} from "react-bootstrap-icons";
 import axios from "axios";
 
 
@@ -23,7 +23,8 @@ const AddOfferForm = () => {
         objectType: "CHAIN_HOTELS",
         totalPrice: "",
         totalPriceInEUR: "",
-        euroExchangeRate: null
+        euroExchangeRate: null,
+        user: null
     });
     const [leadId, setLeadId] = useState(null)
     const [clientId, setClientId] = useState(null)
@@ -34,6 +35,7 @@ const AddOfferForm = () => {
     const [bindingType, setBindingType] = useState("");
     const [users, setUsers] = useState([])
     const [offerItems, setOfferItems] = useState([])
+
 
     useEffect(() => {
         if (offerId) {
@@ -67,8 +69,9 @@ const AddOfferForm = () => {
     }, []);
 
     const handleUserSelect = (e) => {
-        const selectedUserId = e.target.value;
-        setFormData({ ...formData, userId: selectedUserId });
+       const selectedUserId = e.target.value
+        const selectedUser = users.find((user) => user.id === Number(selectedUserId))
+        setFormData({...formData, user: selectedUser || null})
     };
 
 
@@ -145,6 +148,27 @@ const AddOfferForm = () => {
         fetchEuroExchangeRate();
     }, [formData.currency, offerId]);
 
+    const calculateTotals = () => {
+        const totalPLN = offerItems.reduce((acc, item) => {
+            const amount = parseFloat(item.amount || 0);
+            const quantity = parseInt(item.quantity || 1, 10);
+            return acc + amount * quantity;
+        }, 0);
+
+        const totalEUR = formData.currency === "EUR"
+            ? totalPLN // Jeśli wybrano EUR, przyjmujemy kwotę bez przeliczania
+            : formData.euroExchangeRate
+                ? totalPLN / parseFloat(formData.euroExchangeRate) // PLN -> EUR
+                : 0;
+
+        return {
+            totalPLN: formData.currency === "PLN" ? totalPLN.toFixed(2) : (totalEUR * parseFloat(formData.euroExchangeRate || 1)).toFixed(2),
+            totalEUR: formData.currency === "EUR" ? totalEUR.toFixed(2) : (totalPLN / parseFloat(formData.euroExchangeRate || 1)).toFixed(2),
+        };
+    };
+
+    const { totalPLN, totalEUR,  } = calculateTotals();
+
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -194,9 +218,9 @@ const AddOfferForm = () => {
 
                             <div className="page-title-right">
 
-                                        <button type="submit" className="btn btn-primary" onClick={handleSubmit}
+                                        <button type="submit" className="btn btn-success" onClick={handleSubmit}
                                                 disabled={loading}>
-                                            {loading ? "Zapisywanie..." : offerId ? "Zaktualizuj ofertę" : "Dodaj ofertę"}
+                                            {loading ? "Zapisywanie..." : offerId ? "Zaktualizuj ofertę" : "Zapisz ofertę "} <Floppy2 className="ms-2"/>
                                         </button>
                                         {offerId && (
                                             <button
@@ -216,11 +240,12 @@ const AddOfferForm = () => {
                         <div className="card-body">
                             {/* Name */}
                             <div className="form-group pb-2">
-                                <label htmlFor="name" className="form-label">Tytuł</label>
+                                <label htmlFor="name" className="form-label">Tytuł *</label>
                                 <input
                                     type="text"
                                     className="form-control"
                                     id="name"
+                                    required
                                     name="name"
                                     value={formData.name}
                                     onChange={handleChange}
@@ -230,11 +255,12 @@ const AddOfferForm = () => {
 
                             <div className="row">
                                 <div className="col-lg-6 form-group py-2">
-                                    <label htmlFor="userSelect" className="form-label">Przypisz pracownika</label>
+                                    <label htmlFor="userSelect" className="form-label">Handlowiec *</label>
                                     <select
                                         id="userSelect"
+                                        required
                                         className="form-select"
-                                        value={formData.userId || ""}
+                                        value={formData.user?.id || ""}
                                         onChange={handleUserSelect}
                                     >
                                         <option value="">Wybierz pracownika</option>
@@ -243,6 +269,22 @@ const AddOfferForm = () => {
                                                 {user.fullname}
                                             </option>
                                         ))}
+                                    </select>
+                                </div>
+                                <div className="col-lg-6 form-group py-2">
+                                    <label htmlFor="salesOpportunityLevel" className="form-label">Poziom szansy
+                                        sprzedaży</label>
+                                    <select
+                                        className="form-select"
+                                        id="salesOpportunityLevel"
+                                        name="salesOpportunityLevel"
+                                        value={formData.salesOpportunityLevel || ""}
+                                        onChange={handleChange}
+                                    >
+                                        <option value="">Wybierz poziom</option>
+                                        <option value="LOW">Mały poziom szansy sprzedaży</option>
+                                        <option value="MODERATE">Umiarkowany poziom szansy sprzedaży</option>
+                                        <option value="HIGH">Duży poziom szansy sprzedaży</option>
                                     </select>
                                 </div>
                                 {/* Currency */}
@@ -260,27 +302,27 @@ const AddOfferForm = () => {
                                     </select>
                                 </div>
                                 {formData.currency === "EUR" && (
-                                <div className="col-lg-6 form-group py-2">
-                                    <div className="form-group">
-                                        <label htmlFor="euroExchangeRate">Kurs Euro</label>
-                                        <input
-                                            type="number"
-                                            id="euroExchangeRate"
-                                            name="euroExchangeRate"
-                                            value={formData.euroExchangeRate || ""}
-                                            onChange={handleChange}
-                                            className="form-control"
-                                        />
+                                    <div className="col-lg-6 form-group py-2">
+                                        <div className="form-group">
+                                            <label htmlFor="euroExchangeRate">Kurs Euro</label>
+                                            <input
+                                                type="number"
+                                                id="euroExchangeRate"
+                                                name="euroExchangeRate"
+                                                value={formData.euroExchangeRate || ""}
+                                                onChange={handleChange}
+                                                className="form-control"
+                                            />
 
 
-
+                                        </div>
                                     </div>
-                                </div>
                                 )}
                                 <div className="col-lg-6">
                                     <div className="py-2 form-group">
-                                        <label htmlFor="inputGroupSelect01" className="form-label">Powiązanie</label>
+                                        <label htmlFor="inputGroupSelect01" className="form-label">Powiązanie *</label>
                                         <select
+                                            required="true"
                                             className="form-select" id="inputGroupSelect01"
                                             value={bindingType} onChange={handleBindingType}>
                                             <option value="">Wybierz</option>
@@ -294,10 +336,12 @@ const AddOfferForm = () => {
                                 <div className="col-lg-6">
                                     <div className="py-2">
                                         {bindingType === "lead" && (
-                                            <LeadSearchDropdown defaultLead={formData.lead} onLeadSelect={handleLeadSelect}/>
+                                            <LeadSearchDropdown defaultLead={formData.lead}
+                                                                onLeadSelect={handleLeadSelect}/>
                                         )}
                                         {bindingType === "client" && (
-                                            <ClientSearchDropdown defaultClient={formData.client} onClientSelect={handleClientSelect}/>
+                                            <ClientSearchDropdown defaultClient={formData.client}
+                                                                  onClientSelect={handleClientSelect}/>
                                         )}
                                     </div>
                                 </div>
@@ -323,7 +367,6 @@ const AddOfferForm = () => {
                         <div className="card-body card-body">
 
                             <div className="row">
-
 
 
                                 {/* Client Type */}
@@ -371,11 +414,13 @@ const AddOfferForm = () => {
                                     <select
                                         className="form-select"
                                         id="offerStatus"
+
                                         name="offerStatus"
                                         value={formData.offerStatus}
                                         onChange={handleChange}
                                     >
-                                        <option value="SENT">Wysłana</option>
+                                        <option value="DRAFT">Robocza</option>
+                                        <option  value="SENT">Wysłana</option>
                                         <option value="ACCEPTED">Zaakceptowana</option>
                                         <option value="REJECTED">Odrzucona</option>
                                         <option value="SIGNED">Podpisana umowa</option>
@@ -433,8 +478,8 @@ const AddOfferForm = () => {
                                 <tr>
                                     <th>Tytuł</th>
                                     <th>Opis</th>
-                                    <th>Kwota</th>
                                     <th>Ilość</th>
+                                    <th>Kwota</th>
                                     <th>Podatek</th>
                                     <th>Akcje</th>
                                 </tr>
@@ -445,6 +490,7 @@ const AddOfferForm = () => {
                                         <td>
                                             <input
                                                 type="text"
+                                                required
                                                 className="form-control"
                                                 placeholder="Tytuł"
                                                 value={item.title}
@@ -461,6 +507,24 @@ const AddOfferForm = () => {
                                                 onChange={(e) => handleItemChange(index, "description", e.target.value)}
                                             />
                                         </td>
+
+
+                                        <td>
+                                            <input
+                                                type="number"
+                                                className="form-control"
+                                                placeholder="Ilość"
+                                                min="1"
+                                                defaultValue="1"
+                                                value={item.quantity}
+                                                onChange={(e) => handleItemChange(index, "quantity", e.target.value)}
+                                            />
+                                            {item.quantity <= 0 && (
+                                                <div className="text-danger">Ilość musi być większa niż 0</div>
+                                            )}
+
+                                        </td>
+
                                         <td className="form-group">
                                             <div className="input-group">
                                                 <input
@@ -487,22 +551,6 @@ const AddOfferForm = () => {
                                                 </span>
                                             </div>
                                         </td>
-
-                                        <td>
-                                            <input
-                                                type="number"
-                                                className="form-control"
-                                                placeholder="Ilość"
-                                                min="1"
-                                                defaultValue="1"
-                                                value={item.quantity}
-                                                onChange={(e) => handleItemChange(index, "quantity", e.target.value)}
-                                            />
-                                            {item.quantity <= 0 && (
-                                                <div className="text-danger">Ilość musi być większa niż 0</div>
-                                            )}
-
-                                        </td>
                                         <td>
                                             <select className="form-select" value={index.tax}
                                                     onChange={(e) => handleItemChange(index, "tax", e.target.value)}>
@@ -522,13 +570,29 @@ const AddOfferForm = () => {
                                             </button>
                                         </td>
 
+
                                     </tr>
+
+
                                 ))}
+
+                                <tr>
+                                    <td colSpan="3" className="text-end fw-bold">Razem:</td>
+                                    <td>
+                                        {formData.currency === "PLN" ? (
+                                            <div>PLN: {totalPLN} zł</div>
+                                        ) : (
+                                            <div>EUR: {totalEUR} €</div>
+                                        )}
+                                    </td>
+                                    <td></td>
+                                </tr>
+
                                 </tbody>
                             </table>
-                            <div className="d-flex justify-content-end align-items-center">
+                            <div className="d-flex justify-content-center align-items-center">
                                 <button type="button" className="btn btn-primary mt-2" onClick={addNewItem}>
-                                    Dodaj element
+                                    Dodaj element oferty <PlusCircle/>
                                 </button>
                             </div>
 

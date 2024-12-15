@@ -27,6 +27,74 @@ body {
   }
 }
 
+
+/* OfferTimeline.css */
+.timeline {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 0;
+  position: relative;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #ddd;
+  z-index: 1;
+}
+
+.timeline-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 25%;
+  text-align: center;
+  z-index: 2;
+}
+
+.timeline-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px;
+  color: white;
+  margin-bottom: 10px;
+}
+
+.timeline-content {
+  font-size: 14px;
+}
+
+.timeline-step.blue .timeline-icon {
+  background: #007bff;
+}
+
+.timeline-step.green .timeline-icon {
+  background: #28a745;
+}
+
+.timeline-step.red .timeline-icon {
+  background: #dc3545;
+}
+
+.timeline-step.amber .timeline-icon {
+  background: #ffc107;
+}
+
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .noUi-horizontal .noUi-handle {
   height: 16px !important;
   width: 16px !important;

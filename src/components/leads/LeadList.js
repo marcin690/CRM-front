@@ -7,6 +7,7 @@ import {Button, ButtonGroup, Image, OverlayTrigger, Table, Tooltip} from "react-
 import {formatDistanceToNow} from "date-fns";
 import LeadStatusDropdown from "./LeadStatusDropdown";
 import {ErrorIcon, LoaderIcon} from "react-hot-toast";
+import fetchSellers from "../../utils/fetch/fetchSellers";
 
 import {Chat, Eye, EyeFill, EyeSlash, Pencil, Plus, PlusCircle, Trash} from "react-bootstrap-icons";
 import AddEditLeadModal from "./AddEditLeadModal";
@@ -98,6 +99,7 @@ const LeadList = () => {
                 const { _embedded, _links, page } = response.data;
                 const leads = _embedded ? _embedded.leadDTOList : [];
                 setLeads(leads);
+
                 setTotalPages(page.totalPages);
                 setLinks(_links);  // Ustawiamy linki do paginacji
                 setCurrentPage(page.number); // Zapisz aktualną stronę
@@ -155,20 +157,6 @@ const LeadList = () => {
     };
 
 
-    const fetchSellers = async () => {
-        try {
-            const response = await api.get('/users/sellers');
-            setUsers(response.data); // Zapisz handlowców w stanie
-        } catch (error) {
-            const errorMessage =
-                error.response?.data?.message || // Próba odczytania wiadomości z backendu
-                error.response?.statusText ||   // Próba odczytania statusu HTTP
-                "Nieznany błąd";                // Domyślna wiadomość
-
-            notify(`Bład: ${errorMessage}`, "error");
-        }
-    };
-
     const handleDeleteSelected = async () => {
 
         const selectedLeadName = leads
@@ -205,7 +193,14 @@ const LeadList = () => {
 
     useEffect(() => {
         fetchLeads();  // Pobieranie leadów
-        fetchSellers();  // Pobieranie listy handlowców
+
+
+        const fetchUsers = async () => {
+            await fetchSellers(setUsers); // Przekazujemy setUsers, aby zaktualizować stan users
+        };
+
+        fetchUsers(); // Wywołujemy pomocniczą funkcję asynchroniczną
+
     }, []);
 
     const handleShowComments = (clientGlobalId, entityType, entityId) => {
@@ -510,7 +505,7 @@ const LeadList = () => {
                 show={showCommentModal}
                 handleClose={handleCloseComments}
                 clientGlobalId={currentClientGlobalId}
-                entityType={currentEntityType}
+                entityType="LEAD"
                 entityId={currentEntityId}
             />
         </>
